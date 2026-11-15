@@ -261,6 +261,8 @@ a.ev:hover { filter: brightness(.96); }
 
 /* ---------- ปฏิทินรายเดือน (หน้าสถานะรถ) ---------- */
 .stats-4 { grid-template-columns: repeat(4, 1fr); }
+.stats.stats-3 { grid-template-columns: repeat(3, 1fr); }
+.stats.stats-3 .stat:first-child { grid-column: auto; }
 .stat { cursor: default; }
 .mc-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; margin-top: 16px; }
 .mc-card { padding: 16px; }

@@ -280,8 +280,8 @@ async function viewDashboard(query) {
       <div><h1>สถานะรถ</h1><p>เลือกวันในปฏิทินเพื่อดูว่ารถคันไหนว่าง แล้วกดจองได้ทันที${S.settings.require_approval === '1' ? '' : ' · จองแล้วยืนยันทันที ไม่ต้องรออนุมัติ'}</p></div>
       <a class="btn btn-primary" href="#/book">${ICON.plus} จองรถ</a>
     </div>
-    <div class="stats stats-4">
-      ${[['available', 'ว่างขณะนี้', c.available], ['booked', 'จองแล้ว (ยังไม่ถึงเวลา)', c.booked], ['in_use', 'กำลังใช้งาน', c.in_use], ['unavailable', 'ซ่อม/ปิดใช้งาน', c.unavailable]]
+    <div class="stats stats-3">
+      ${[['available', 'ว่างขณะนี้', c.available], ['in_use', 'กำลังใช้งาน', c.in_use], ['unavailable', 'ซ่อม/ปิดใช้งาน', c.unavailable]]
         .map(([k, l, n]) => `<div class="stat ${k}"><span class="n">${n}</span><span class="l">${l}</span></div>`).join('')}
     </div>
     <div class="alerts">${dashData.pending && S.settings.require_approval === '1' ? `<a class="alert" href="#/requests?status=pending"><b>${dashData.pending}</b> ${isAdmin() ? 'คำขอรออนุมัติ' : 'คำขอของคุณรออนุมัติ'} →</a>` : ''}
@@ -328,7 +328,7 @@ async function viewDashboard(query) {
             return b.can_view ? `<a class="day-book" href="#/requests/${b.id}">${line}</a>` : `<div class="day-book">${line}</div>`;
           }).join('')}
           ${x.maint.map((m) => `<div class="day-book maint">ซ่อมบำรุง: ${esc(m.description)}<br><span class="faint">ถึง ${m.end_at ? esc(fmtDateTime(m.end_at)) : 'ยังไม่กำหนด'}</span></div>`).join('')}
-          ${x.state === 'free' && !past ? `<a class="btn btn-sm btn-primary" href="#/book?vehicle=${x.v.id}&date=${ymd(d)}">จองวันนี้</a>` : ''}
+          ${x.state === 'free' && !past ? `<a class="btn btn-sm btn-primary" href="#/book?vehicle=${x.v.id}&date=${ymd(d)}">จอง</a>` : ''}
         </div>`).join('')}
       </div>`;
   }
@@ -640,7 +640,6 @@ async function viewBook(query) {
         <div class="form-grid">
           <div class="field full"><span>สถานที่ไป/จุดหมาย <b class="req">*</b></span>${presetSelect('destination')}<input name="destination" required placeholder="เช่น ศาลากลางจังหวัดเชียงใหม่"></div>
           <div class="field full"><span>วัตถุประสงค์/เหตุผล <b class="req">*</b></span>${presetSelect('purpose')}<textarea name="purpose" required placeholder="เช่น ประชุม… / นำส่งหนังสือราชการ…"></textarea></div>
-          <label class="field full"><span>ผู้ร่วมเดินทาง</span><textarea name="companions" placeholder="ระบุชื่อผู้ร่วมเดินทาง คั่นด้วยเครื่องหมายจุลภาค หรือขึ้นบรรทัดใหม่"></textarea></label>
           <label class="field"><span>จำนวนผู้เดินทางทั้งหมด (รวมผู้ขอ) <b class="req">*</b></span><input name="passenger_count" type="number" min="1" max="100" required value="1" inputmode="numeric"></label>
           <label class="field" style="justify-content:flex-end"><span class="check"><input type="checkbox" name="need_driver" checked> ต้องการพนักงานขับรถ</span></label>
           <label class="field"><span>วันเวลาออกเดินทาง <b class="req">*</b></span><input name="start_at" type="datetime-local" required value="${start}"></label>
@@ -862,7 +861,7 @@ async function viewRequestDetail(id) {
             <dt>สถานที่ไป/จุดหมาย</dt><dd>${esc(b.destination)}</dd>
             <dt>วัตถุประสงค์/เหตุผล</dt><dd>${esc(b.purpose)}</dd>
             <dt>จำนวนผู้เดินทาง</dt><dd>${b.passenger_count} คน</dd>
-            <dt>ผู้ร่วมเดินทาง</dt><dd>${esc(b.companions || '-')}</dd>
+            ${b.companions ? `<dt>ผู้ร่วมเดินทาง</dt><dd>${esc(b.companions)}</dd>` : ''}
             <dt>ออกเดินทาง</dt><dd>${esc(fmtDateTime(b.start_at))}</dd>
             <dt>กลับ</dt><dd>${esc(fmtDateTime(b.end_at))}</dd>
             <dt>ประเภทรถ</dt><dd>${esc(b.type_name || b.type_other || '-')}${b.need_driver ? ' · ต้องการพนักงานขับรถ' : ' · ไม่ต้องการพนักงานขับรถ'}</dd>
@@ -1349,7 +1348,6 @@ async function settingsPrint(el) {
         <details open><summary>ส่วนที่แสดง</summary><div class="pl-group">
           ${chk('showOfficerSection', 'ส่วนเจ้าหน้าที่ผู้รับผิดชอบ / คำสั่ง')}
           ${chk('showTripSection', 'ส่วนบันทึกการใช้รถ')}
-          ${chk('showCompanionNames', 'ต่อท้ายวัตถุประสงค์ด้วยรายชื่อผู้ร่วมเดินทาง')}
           ${chk('printSignerNames', 'พิมพ์ชื่อผู้ลงนามที่เลือกในวงเล็บ')}
           ${chk('showRef', 'เลขอ้างอิงการจองที่มุมล่างซ้าย')}
         </div></details>
