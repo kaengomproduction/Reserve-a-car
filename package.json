@@ -1,0 +1,14 @@
+{
+  "name": "vehicle-booking-th",
+  "version": "1.0.0",
+  "description": "ระบบตรวจสอบสถานะรถและจองคิวใช้รถ (ภาษาไทย)",
+  "private": true,
+  "main": "server.js",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "reset-demo": "node scripts/reset-demo.js",
+    "test": "node --test test/*.test.js"
+  }
+}

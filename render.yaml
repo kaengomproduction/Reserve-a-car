@@ -1,0 +1,26 @@
+# Render Blueprint: เชื่อม repository GitHub แล้ว Render จะ deploy ใหม่ทุกครั้งที่ push
+# ต้องใช้แผนที่มี Persistent Disk (Starter ขึ้นไป) เพื่อให้ไฟล์ฐานข้อมูลไม่หายตอน deploy ใหม่
+services:
+  - type: web
+    name: vehicle-booking
+    runtime: docker
+    plan: starter
+    region: singapore
+    autoDeploy: true
+    healthCheckPath: /
+    disk:
+      name: booking-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DB_PATH
+        value: /data/booking.db
+      - key: TRUST_PROXY
+        value: "1"
+      - key: SEED_DEMO
+        value: "0"
+      - key: ADMIN_USERNAME
+        value: admin
+      # ตั้งรหัสผ่านผู้ดูแลเริ่มต้นในหน้า Render (ไม่เก็บไว้ใน git)
+      - key: ADMIN_PASSWORD
+        sync: false

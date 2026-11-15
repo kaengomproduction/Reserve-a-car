@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>พิมพ์ใบขออนุญาตใช้รถ</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&family=IBM+Plex+Sans+Thai:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="print.css">
+</head>
+<body>
+  <div class="toolbar no-print" id="toolbar">
+    <a class="tb-btn" id="backLink" href="./#/requests">← กลับ</a>
+    <div class="tb-title" id="tbTitle">ใบขออนุญาตใช้รถ</div>
+    <label class="tb-check" title="เติมผลการอนุมัติ ผู้ขับ และเลขไมล์ที่บันทึกในระบบลงในเอกสาร">
+      <input type="checkbox" id="optFill"> เติมผลพิจารณา/บันทึกการใช้รถจากระบบ
+    </label>
+    <label class="tb-check" title="คลิกที่ข้อความบนเอกสารเพื่อแก้ไขก่อนพิมพ์ (ไม่บันทึกลงระบบ)">
+      <input type="checkbox" id="optEdit"> แก้ไขข้อความก่อนพิมพ์
+    </label>
+    <label class="tb-sel" title="ชื่อที่จะพิมพ์ในวงเล็บใต้ลายเซ็น (ผู้ดูแลเพิ่มรายชื่อได้ที่ ตั้งค่า → บุคลากร)">ผู้รับผิดชอบ <select id="selResp"></select></label>
+    <label class="tb-sel" title="ชื่อที่จะพิมพ์ในวงเล็บใต้ลายเซ็น">ผู้มีอำนาจ <select id="selAppr"></select></label>
+    <button class="tb-btn tb-primary" id="printBtn" type="button">พิมพ์ / บันทึกเป็น PDF</button>
+  </div>
+  <div class="hint no-print" id="hint">ตั้งค่าเครื่องพิมพ์: กระดาษ A4 แนวตั้ง · ขนาด 100% (ค่าเริ่มต้น) · แนะนำให้ปิด “ส่วนหัวและส่วนท้าย” ของเบราว์เซอร์</div>
+  <main class="sheet-wrap" id="wrap"><div class="loading">กำลังเตรียมเอกสาร…</div></main>
+  <script type="module" src="js/print.js"></script>
+</body>
+</html>
