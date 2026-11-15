@@ -695,7 +695,17 @@ grant select on vehicle_types, vehicles, maintenance, presets, settings, people_
 grant select, insert, update, delete on vehicle_types, vehicles, maintenance, presets, settings, bookings, trip_logs, booking_events, people to authenticated;
 grant select, update on admin_users to authenticated;
 
+grant usage on schema public to anon, authenticated;
+-- อนุญาตให้หน้าเว็บเรียกฟังก์ชัน (Supabase บางโปรเจกต์ไม่อนุญาตอัตโนมัติ) — ฟังก์ชันงานผู้ดูแลตรวจสิทธิ์อยู่ภายในแล้ว
+grant execute on all functions in schema public to anon, authenticated;
+
 -- ฟังก์ชันภายในที่ไม่ควรเรียกตรงจากภายนอก
 revoke execute on function assert_vehicle_fits(bigint, timestamptz, timestamptz, int, bigint) from public, anon, authenticated;
 revoke execute on function log_event(bigint, text, text, text) from public, anon, authenticated;
 revoke execute on function booking_json(bigint) from public, anon, authenticated;
+
+-- ให้ Supabase (PostgREST) โหลดรายการตาราง/ฟังก์ชันใหม่ทันที
+notify pgrst, 'reload schema';
+
+-- ถ้าเห็นข้อความนี้ในผลลัพธ์ แปลว่ารันครบทั้งไฟล์
+select 'ติดตั้งฐานข้อมูลระบบจองรถเรียบร้อย' as result;
