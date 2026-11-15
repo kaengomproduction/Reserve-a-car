@@ -11,7 +11,7 @@ const { DEFAULT_LAYOUT } = require('./lib/printLayout');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json; charset=utf-8',
   '.woff2': 'font/woff2', '.ttf': 'font/ttf',
 };
 
@@ -126,7 +126,7 @@ function createApp({ dbPath = process.env.DB_PATH || path.join(__dirname, 'data'
       const user = getCurrentUser(req, svc);
       const body = ['POST', 'PUT', 'PATCH'].includes(req.method) ? await readBody(req, url.pathname === '/api/people/import' ? 8e6 : 1e6) : {};
       const ctx = { user, body, query: Object.fromEntries(url.searchParams), id: m[1] ? Number(m[1]) : null };
-      const result = route.handler(ctx);
+      const result = await route.handler(ctx);
       send(res, req.method === 'POST' && url.pathname === '/api/bookings' ? 201 : 200, result);
     } catch (e) {
       if (e instanceof AppError) return send(res, e.status, { error: e.message, ...e.extra });

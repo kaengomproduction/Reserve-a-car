@@ -1,5 +1,5 @@
 import {
-  api, ApiError, addToken, getLastRequester, setLastRequester, esc, num, fmtDateTime, fmtDate, fmtDateLong, fmtDayShort, fmtTime, fmtRange,
+  api, ApiError, SUPABASE_MODE, addToken, getLastRequester, setLastRequester, esc, num, fmtDateTime, fmtDate, fmtDateLong, fmtDayShort, fmtTime, fmtRange,
   bkkParts, bkkIso, bkkDayStart, toLocalInput, fromLocalInput, fmtMonthYear, BOOKING_STATUS, EVENT_LABEL,
 } from './util.js';
 
@@ -143,7 +143,7 @@ function renderShell() {
 function loginDialog() {
   return modal({
     title: 'เข้าสู่ระบบผู้ดูแล', submitLabel: 'เข้าสู่ระบบ',
-    body: `<label class="field"><span>ชื่อผู้ใช้</span><input name="username" autocomplete="username" required></label>
+    body: `<label class="field"><span>${SUPABASE_MODE ? 'อีเมลผู้ดูแล' : 'ชื่อผู้ใช้'}</span><input name="username" ${SUPABASE_MODE ? 'type="email"' : ''} autocomplete="username" required></label>
       <label class="field"><span>รหัสผ่าน</span><input name="password" type="password" autocomplete="current-password" required></label>`,
     onSubmit: async (f) => {
       await api('POST', '/api/login', { username: f.username.value, password: f.password.value });
@@ -1092,7 +1092,7 @@ function settingsGeneral(el) {
         <p>ขณะนี้มีรถตัวอย่าง <b>${S.demo.vehicles}</b> คัน และการจองตัวอย่าง <b>${S.demo.bookings}</b> รายการ (เลขที่ขึ้นต้นด้วย DEMO-) ข้อมูลที่เพิ่มเองจะไม่ถูกลบ</p>
         <div class="row">
           <button class="btn btn-danger" id="demoClear">ลบข้อมูลตัวอย่างทั้งหมด</button>
-          <button class="btn" id="demoReset">รีเซ็ตข้อมูลตัวอย่างใหม่</button>
+          ${SUPABASE_MODE ? '' : '<button class="btn" id="demoReset">รีเซ็ตข้อมูลตัวอย่างใหม่</button>'}
         </div>
         <p class="faint">ถ้าการจองที่สร้างเองใช้รถตัวอย่าง การลบข้อมูลตัวอย่างจะทำให้การจองนั้นไม่มีรถ</p>
       </section>
@@ -1102,7 +1102,7 @@ function settingsGeneral(el) {
         <p class="faint" style="margin-top:-6px">ระบบมีบัญชีผู้ดูแลบัญชีเดียว เจ้าหน้าที่ทั่วไปจองได้โดยไม่ต้องเข้าสู่ระบบ</p>
         ${S.account?.is_default ? '<div class="conflict-box" style="margin-bottom:12px">ยังใช้รหัสผ่านเริ่มต้นอยู่ กรุณาตั้งรหัสผ่านใหม่</div>' : ''}
         <div class="form-grid">
-          <label class="field"><span>ชื่อผู้ใช้</span><input name="username" value="${esc(S.account?.username || '')}" autocomplete="username"><small>ตัวอักษรอังกฤษ ตัวเลข หรือ . _ @ -</small></label>
+          <label class="field"><span>${SUPABASE_MODE ? 'อีเมลผู้ดูแล' : 'ชื่อผู้ใช้'}</span><input name="username" value="${esc(S.account?.username || '')}" autocomplete="username" ${SUPABASE_MODE ? 'readonly' : ''}><small>${SUPABASE_MODE ? 'เปลี่ยนอีเมลได้ที่ Supabase → Authentication → Users' : 'ตัวอักษรอังกฤษ ตัวเลข หรือ . _ @ -'}</small></label>
           <label class="field"><span>ชื่อที่แสดงในประวัติการดำเนินการ</span><input name="display_name" value="${esc(S.account?.display_name || '')}"></label>
           <label class="field"><span>รหัสผ่านใหม่</span><input name="new_password" type="password" autocomplete="new-password"><small>อย่างน้อย 8 ตัวอักษร · เว้นว่างถ้าไม่เปลี่ยน</small></label>
           <label class="field"><span>ยืนยันรหัสผ่านใหม่</span><input name="confirm_password" type="password" autocomplete="new-password"></label>
@@ -1162,7 +1162,7 @@ function settingsGeneral(el) {
     if (!(await confirmDialog('ลบข้อมูลตัวอย่าง', 'ลบรถ การจอง รายการซ่อมบำรุง บุคลากร และรายการที่ใช้บ่อยที่เป็นข้อมูลตัวอย่างทั้งหมด (ข้อมูลที่เพิ่มเองไม่ถูกลบ) ยืนยันหรือไม่', 'ลบข้อมูลตัวอย่าง', 'btn-danger'))) return;
     try { await api('POST', '/api/demo/clear'); await loadSession(); toast('ลบข้อมูลตัวอย่างแล้ว'); viewSettings({ tab: 'general' }); } catch (err) { showError(err); }
   });
-  $('#demoReset').addEventListener('click', async () => {
+  $('#demoReset')?.addEventListener('click', async () => {
     if (!(await confirmDialog('รีเซ็ตข้อมูลตัวอย่าง', 'ลบข้อมูลตัวอย่างเดิมแล้วสร้างใหม่โดยอิงวันที่ปัจจุบัน ยืนยันหรือไม่', 'รีเซ็ต'))) return;
     try { await api('POST', '/api/demo/reset'); await loadSession(); toast('รีเซ็ตข้อมูลตัวอย่างแล้ว'); viewSettings({ tab: 'general' }); } catch (err) { showError(err); }
   });

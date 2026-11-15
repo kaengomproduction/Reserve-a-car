@@ -17,7 +17,14 @@ export class ApiError extends Error {
   constructor(status, data) { super(data?.error || 'เกิดข้อผิดพลาด'); this.status = status; this.data = data || {}; }
 }
 
+/** โหมด Supabase เมื่อ config.js มี supabaseUrl (เช่นบน GitHub Pages) ไม่งั้นใช้เซิร์ฟเวอร์ Node */
+export const SUPABASE_MODE = !!(globalThis.APP_CONFIG && globalThis.APP_CONFIG.supabaseUrl);
+
 export async function api(method, url, body) {
+  if (SUPABASE_MODE) {
+    const { sbApi } = await import('./supabase-api.js');
+    return sbApi(method, url, body);
+  }
   let res;
   try {
     res = await fetch(url, {

@@ -7,3 +7,5 @@ data/*.db-*
 /*.xlsx
 /*.xls
 /*.csv
+# ไฟล์ส่งออกข้อมูลไป Supabase (มีข้อมูลจริง)
+data/*.sql

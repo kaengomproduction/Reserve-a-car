@@ -12,7 +12,8 @@
 
 ```bash
 npm start            # เปิดที่ http://127.0.0.1:3000
-npm test             # ทดสอบการจอง กันจองซ้อน อนุมัติ บันทึกการใช้รถ สิทธิ์ผู้ใช้
+npm install          # ครั้งแรก: ติดตั้งเครื่องมือทดสอบ (ใช้เฉพาะตอนทดสอบ)
+npm test             # ทดสอบเซิร์ฟเวอร์ Node และฐานข้อมูล Supabase (ผ่าน PGlite)
 npm run reset-demo   # ล้างและสร้างข้อมูลตัวอย่างใหม่ (ข้อมูลจริงไม่ถูกลบ)
 ```
 
@@ -27,7 +28,39 @@ npm run reset-demo   # ล้างและสร้างข้อมูลต
 
 ตัวอย่างบน Windows PowerShell: `$env:PORT=8080; npm start`
 
-## Deploy (GitHub + บริการโฮสต์)
+## ใช้งานบนอินเทอร์เน็ตฟรี: GitHub Pages + Supabase
+
+หน้าเว็บอยู่บน GitHub Pages ส่วนข้อมูลอยู่ใน Supabase (PostgreSQL) กฎสำคัญทั้งหมดทำงานในฐานข้อมูล ได้แก่ กันจองซ้ำ เลขที่ตามทะเบียน รหัสลับการจอง และสิทธิ์ผู้ดูแล จึงปลอมจากหน้าเว็บไม่ได้ ดูรายละเอียดใน `supabase/schema.sql`
+
+**1. สร้างฐานข้อมูล Supabase**
+1. สมัคร/เข้า supabase.com → **New project** (Region: Southeast Asia (Singapore)) ตั้งรหัสผ่านฐานข้อมูลแล้วเก็บไว้
+2. เมนู **SQL Editor** → New query → วางเนื้อหาไฟล์ `supabase/schema.sql` ทั้งไฟล์ → **Run** (รันซ้ำได้ ไม่ลบข้อมูล)
+3. (ถ้าต้องการย้ายข้อมูลจากเครื่องนี้) รัน `npm run export-supabase` จะได้ไฟล์ `data/supabase-import.sql` → วางใน SQL Editor แล้ว Run ใช้กับโปรเจกต์ใหม่ที่ยังไม่มีข้อมูลเท่านั้น และ**อย่า push ไฟล์นี้ขึ้น GitHub** เพราะมีข้อมูลจริง (อยู่ใน .gitignore แล้ว)
+
+**2. สร้างบัญชีผู้ดูแล (บัญชีเดียว)**
+1. **Authentication → Sign In / Providers**: ปิด **Allow new users to sign up** (สำคัญ ไม่งั้นใครก็สมัครได้ แม้จะยังไม่ได้สิทธิ์ผู้ดูแล)
+2. **Authentication → Users → Add user → Create new user**: ใส่อีเมลและรหัสผ่านผู้ดูแล ติ๊ก **Auto Confirm User**
+3. SQL Editor → รันคำสั่งนี้ (เปลี่ยนอีเมลเป็นของคุณ):
+   ```sql
+   insert into admin_users(user_id, display_name)
+   select id, 'ผู้ดูแลระบบ' from auth.users where email = 'อีเมลผู้ดูแล@example.com';
+   ```
+   ล็อกอินในหน้าเว็บด้วยอีเมลนี้ เปลี่ยนรหัสผ่านได้ที่หน้าตั้งค่า หรือที่ Supabase → Authentication → Users
+
+**3. เชื่อม GitHub Pages**
+1. Supabase → **Project Settings → API**: คัดลอก **Project URL** และ **anon public key** (anon key เป็นค่าสาธารณะ ใส่ในหน้าเว็บได้ ความปลอดภัยอยู่ที่ Row Level Security)
+2. GitHub repository → **Settings → Secrets and variables → Actions → แท็บ Variables → New repository variable**: เพิ่ม `SUPABASE_URL` และ `SUPABASE_ANON_KEY`
+3. GitHub repository → **Settings → Pages → Source: GitHub Actions**
+4. push ขึ้น `main` (หรือเปิดแท็บ Actions → GitHub Pages → Run workflow) แล้วรอ 1–2 นาที หน้าเว็บจะอยู่ที่ `https://<ชื่อบัญชี>.github.io/<ชื่อ-repo>/`
+
+ข้อควรรู้
+- GitHub Pages ฟรีสำหรับ repository แบบ Public (แบบ Private ต้องใช้ GitHub Pro ขึ้นไป) โค้ดเปิดเผยได้ ข้อมูลจริงอยู่ใน Supabase ไม่ได้อยู่ใน repository
+- Supabase แผนฟรีจะพักโปรเจกต์ที่ไม่มีการใช้งานนาน 7 วัน (เข้า Dashboard แล้วกด Restore ได้) ถ้าใช้งานทุกวันจะไม่ถูกพัก
+- รายชื่อบุคลากรที่ผู้ไม่ได้ล็อกอินเห็นจะไม่มีเบอร์โทร (อ่านผ่าน `people_public`) ส่วนตารางการจองอ่านได้เฉพาะผ่านฟังก์ชันที่ตรวจรหัสลับ
+- ในโหมด Supabase ปุ่ม "รีเซ็ตข้อมูลตัวอย่าง" จะไม่แสดง (ฐานข้อมูลเริ่มต้นแบบว่าง มีเฉพาะประเภทรถตามแบบฟอร์ม)
+- ยังรันแบบเดิมในเครื่องได้ด้วย `npm start` (ไฟล์ `public/config.js` ค่าว่าง = ใช้เซิร์ฟเวอร์ Node)
+
+## Deploy แบบมีเซิร์ฟเวอร์ (GitHub + บริการโฮสต์)
 
 **GitHub Pages ใช้ไม่ได้** เพราะ Pages เปิดได้แค่ไฟล์ static ส่วนระบบนี้ต้องมีเซิร์ฟเวอร์ Node.js และไฟล์ฐานข้อมูลที่บันทึกถาวร จึงเก็บโค้ดไว้บน GitHub แล้วให้บริการโฮสต์ดึงไปรัน
 
@@ -127,12 +160,18 @@ server.js            HTTP server, เส้นทาง API, ไฟล์ static
 lib/db.js            สคีมาฐานข้อมูล ค่าตั้งต้นแบบพิมพ์ และข้อมูลตัวอย่าง
 lib/service.js       ตรรกะทั้งหมด: สถานะรถ ตรวจเวลาทับซ้อน การอนุมัติ บันทึกการใช้รถ สิทธิ์
 lib/auth.js          เข้าสู่ระบบผู้ดูแล (session/รหัสผ่าน) และรหัสลับการจองของผู้ไม่ได้ล็อกอิน
-lib/xlsx.js          อ่านไฟล์ Excel (.xlsx) / CSV สำหรับนำเข้ารายชื่อ
 lib/time.js          จัดการเวลา Asia/Bangkok
 public/index.html    หน้าแอป (SPA) + public/js/app.js + public/styles.css
 public/print.html    หน้าพิมพ์ A4 + public/js/print.js + public/print.css
+public/config.js     ตั้งค่า Supabase (ว่าง = ใช้เซิร์ฟเวอร์ Node)
+public/js/supabase-api.js   ตัวเชื่อม Supabase (แปลง api('/api/...') เป็น REST/RPC)
+public/js/printLayout.mjs   รูปแบบหน้าพิมพ์ (ใช้ร่วมกันทั้ง Node และหน้าเว็บ)
+public/js/peopleImport.mjs  อ่าน Excel/CSV สำหรับนำเข้ารายชื่อ (ใช้ร่วมกัน)
+supabase/schema.sql  ตาราง สิทธิ์ (RLS) และฟังก์ชันกฎการจองสำหรับ Supabase
+scripts/export-supabase.js  ส่งออกข้อมูลในเครื่องเป็น SQL สำหรับ Supabase
 scripts/reset-demo.js
-test/api.test.js     ทดสอบแบบ integration (node:test)
+test/api.test.js     ทดสอบเซิร์ฟเวอร์ Node (node:test)
+test/supabase.test.js  ทดสอบ supabase/schema.sql ด้วย PGlite
 ```
 
 ตารางหลัก: `users`, `vehicle_types`, `vehicles`, `maintenance`, `bookings`, `trip_logs`, `booking_events`, `people`, `presets`, `settings` (รูปแบบหน้าพิมพ์เก็บเป็น JSON ใน `settings.print_layout` ค่าเริ่มต้นและช่วงค่าที่อนุญาตอยู่ใน `lib/printLayout.js`)
