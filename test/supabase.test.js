@@ -90,6 +90,9 @@ test('ผู้ไม่ได้ล็อกอินจอง: ยืนยั
 
   assert.equal((await create('anon', form(vanId, 11))).vehicle_seq, 2, 'วันถัดไปจองได้ เลขที่รันต่อ');
   assert.equal((await create('anon', form(seqCarId, 10))).vehicle_seq, 58, 'ใช้เลขเริ่มต้นของรถ');
+  // เลือกพนักงานขับรถเองได้ / ไม่ต้องการพนักงานขับรถ
+  assert.equal((await create('anon', form(sedanId, 60, 9, 12, { type_id: 1, assigned_driver: 'นายเลือก เอง' }))).assigned_driver, 'นายเลือก เอง');
+  assert.equal((await create('anon', form(sedanId, 61, 9, 12, { type_id: 1, assigned_driver: 'นายเลือก เอง', need_driver: false }))).assigned_driver, '');
 });
 
 test('ตรวจข้อมูลจอง: ย้อนหลัง ที่นั่งเกิน ไม่เลือกรถ รถซ่อม/ปิดใช้งาน', async () => {

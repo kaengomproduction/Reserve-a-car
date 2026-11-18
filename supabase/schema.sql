@@ -348,6 +348,7 @@ declare
   v_type_other text := left(trim(coalesce(p->>'type_other', '')), 100);
   v_vehicle bigint := to_int(p->>'vehicle_id');
   v_need_driver boolean := coalesce(p->>'need_driver', 'true') not in ('false', '0');
+  v_driver text := left(trim(coalesce(p->>'assigned_driver', '')), 120); -- ว่าง = ใช้พนักงานขับรถประจำรถ
   s timestamptz; e timestamptz; v vehicles; new_id bigint; tok text; v_code text; prefix text; n int;
 begin
   if v_name = '' then raise exception 'กรุณาระบุชื่อผู้ขอใช้รถ' using errcode = 'PT400'; end if;
@@ -384,7 +385,7 @@ begin
     values (v_code, v_name, left(trim(coalesce(p->>'requester_position', '')), 120), v_dept, left(trim(coalesce(p->>'requester_phone', '')), 40),
       v_purpose, v_dest, left(trim(coalesce(p->>'companions', '')), 2000), v_pax, v_type, v_type_other, v_vehicle,
       case when v_vehicle is not null then next_vehicle_seq(v_vehicle) end, v_need_driver,
-      case when not req_approval and v_need_driver then coalesce(v.driver_name, '') else '' end, s, e, left(trim(coalesce(p->>'note', '')), 2000),
+      case when not v_need_driver then '' when v_driver <> '' then v_driver when not req_approval then coalesce(v.driver_name, '') else '' end, s, e, left(trim(coalesce(p->>'note', '')), 2000),
       case when req_approval then 'pending' else 'approved' end, case when req_approval then null else now() end, tok)
     returning id into new_id;
 

@@ -97,6 +97,14 @@ test('ค่าเริ่มต้น: จองแล้วยืนยัน
   assert.equal((await api('POST', '/api/bookings', { ...form, start_at: bkkLocal(13, 8), end_at: bkkLocal(13, 17) }, USER2)).status, 201);
   assert.equal((await api('POST', '/api/bookings', { ...form, start_at: bkkLocal(11, 18), end_at: bkkLocal(12, 0) }, USER2)).status, 201);
 
+  // เลือกพนักงานขับรถเองได้ / ไม่ต้องการพนักงานขับรถ / ไม่ระบุ = คนขับประจำรถ
+  const picked = await api('POST', '/api/bookings', { ...form, start_at: bkkLocal(14, 9), end_at: bkkLocal(14, 10), assigned_driver: 'นายเลือก เอง' });
+  assert.equal(picked.data.assigned_driver, 'นายเลือก เอง');
+  const self = await api('POST', '/api/bookings', { ...form, start_at: bkkLocal(15, 9), end_at: bkkLocal(15, 10), need_driver: false, assigned_driver: 'นายเลือก เอง' });
+  assert.equal(self.data.assigned_driver, '');
+  const regular = await api('POST', '/api/bookings', { ...form, start_at: bkkLocal(16, 9), end_at: bkkLocal(16, 10), assigned_driver: '' });
+  assert.equal(regular.data.assigned_driver, suv.driver_name);
+
   // ไม่ต้องอนุมัติแล้วต้องเลือกรถเสมอ
   const noCar = await api('POST', '/api/bookings', { ...form, vehicle_id: '', start_at: bkkLocal(20, 9), end_at: bkkLocal(20, 10) });
   assert.equal(noCar.status, 400);

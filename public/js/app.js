@@ -107,19 +107,24 @@ async function loadSession() {
   const meta = await api('GET', '/api/meta');
   S.types = meta.types; S.settings = meta.settings; S.people = meta.people; S.presets = meta.presets;
   S.layout = meta.print_layout; S.layoutDefault = meta.print_layout_default;
-  renderDatalists();
   // ไม่ต้องอนุมัติ: สถานะ approved แสดงเป็น "จองแล้ว"
   BOOKING_STATUS.approved = needApproval() ? 'อนุมัติ' : 'จองแล้ว';
   renderShell();
 }
 
-/** รายชื่อพนักงานขับรถสำหรับช่องที่พิมพ์ชื่อได้หรือเลือกจากรายการ (<input list="dlDrivers">) */
-function renderDatalists() {
-  let dl = document.getElementById('dlDrivers');
-  if (!dl) { dl = document.createElement('datalist'); dl.id = 'dlDrivers'; document.body.append(dl); }
-  dl.innerHTML = (S.people || []).filter((p) => p.active && p.is_driver).map((p) => `<option value="${esc(p.name)}">${esc(p.phone || p.position)}</option>`).join('');
+/** รายชื่อพนักงานขับรถ (บุคลากรที่ติ๊ก "พนักงานขับรถยนต์") */
+const driverNames = () => (S.people || []).filter((p) => p.active && p.is_driver).map((p) => p.name);
+/** ตัวเลือกพนักงานขับรถแบบ dropdown — ชื่อเดิมที่ไม่อยู่ในรายชื่อยังคงแสดงไว้ */
+function driverOptions(current = '', emptyLabel = '— ไม่ระบุ —') {
+  const names = driverNames();
+  if (current && !names.includes(current)) names.unshift(current);
+  return `<option value="">${esc(emptyLabel)}</option>` + names.map((n) => `<option ${n === current ? 'selected' : ''}>${esc(n)}</option>`).join('');
 }
-const driverAttrs = 'list="dlDrivers" autocomplete="off" placeholder="เลือกจากรายชื่อ หรือพิมพ์ชื่อ"';
+/** ตั้งค่า select เป็นชื่อที่กำหนด (เพิ่มตัวเลือกให้ถ้ายังไม่มี) */
+function selectDriver(sel, name) {
+  if (name && ![...sel.options].some((o) => o.value === name)) sel.add(new Option(name, name), 1);
+  sel.value = name || '';
+}
 
 function renderShell() {
   $('#acct').innerHTML = isAdmin()
@@ -446,7 +451,7 @@ async function vehicleForm(v = null) {
       <label class="field"><span>รุ่น</span><input name="model" value="${esc(v?.model)}"></label>
       <label class="field"><span>จำนวนที่นั่ง <b class="req">*</b></span><input name="seats" type="number" min="1" max="100" required value="${esc(v?.seats ?? 4)}"></label>
       <label class="field"><span>สี</span><input name="color" value="${esc(v?.color)}"></label>
-      <label class="field"><span>พนักงานขับรถประจำ</span><input name="driver_name" value="${esc(v?.driver_name)}" ${driverAttrs}></label>
+      <label class="field"><span>พนักงานขับรถประจำ</span><select name="driver_name">${driverOptions(v?.driver_name || '')}</select></label>
       <label class="field"><span>เบอร์โทรพนักงานขับรถ</span><input name="driver_phone" value="${esc(v?.driver_phone)}"></label>
       <label class="field"><span>เลขไมล์ปัจจุบัน (กม.)</span><input name="mileage" type="number" min="0" value="${esc(v?.mileage ?? '')}"></label>
       <label class="field"><span>เลขลำดับเอกสารเริ่มต้น</span><input name="seq_start" type="number" min="1" value="${esc(v?.seq_start ?? 1)}"><small>${v ? `เลขถัดไปของรถคันนี้: <b>${v.next_seq}</b> · ` : ''}ใช้เมื่อเคยออกเลขด้วยกระดาษไปแล้ว เช่น ใส่ 58 ถ้าใบล่าสุดคือ 57</small></label>
@@ -641,7 +646,7 @@ async function viewBook(query) {
           <div class="field full"><span>สถานที่ไป/จุดหมาย <b class="req">*</b></span>${presetSelect('destination')}<input name="destination" required placeholder="เช่น ศาลากลางจังหวัดเชียงใหม่"></div>
           <div class="field full"><span>วัตถุประสงค์/เหตุผล <b class="req">*</b></span>${presetSelect('purpose')}<textarea name="purpose" required placeholder="เช่น ประชุม… / นำส่งหนังสือราชการ…"></textarea></div>
           <label class="field"><span>จำนวนผู้เดินทางทั้งหมด (รวมผู้ขอ) <b class="req">*</b></span><input name="passenger_count" type="number" min="1" max="100" required value="1" inputmode="numeric"></label>
-          <label class="field" style="justify-content:flex-end"><span class="check"><input type="checkbox" name="need_driver" checked> ต้องการพนักงานขับรถ</span></label>
+          <label class="field"><span>พนักงานขับรถ</span><select name="driver_choice"><option value="">พนักงานขับรถประจำรถ</option>${driverNames().map((n) => `<option>${esc(n)}</option>`).join('')}<option value="__self">ไม่ต้องการพนักงานขับรถ (ขับเอง)</option></select></label>
           <label class="field"><span>วันเวลาออกเดินทาง <b class="req">*</b></span><input name="start_at" type="datetime-local" required value="${start}"></label>
           <label class="field"><span>วันเวลากลับ <b class="req">*</b></span><input name="end_at" type="datetime-local" required value="${end}"></label>
           <div class="full faint" id="durNote"></div>
@@ -711,8 +716,14 @@ async function viewBook(query) {
     $('#vpick').innerHTML = `${anyOption}${items.join('')}
       ${type !== 'other' && !list.length ? `<p class="faint">ยังไม่มีรถประเภทนี้ในระบบ${needApproval() ? ' ผู้ดูแลจะพิจารณาจัดรถให้' : ''}</p>` : ''}`;
   }
+  // แสดงชื่อพนักงานขับรถประจำของรถที่เลือกในตัวเลือกแรก
+  const showRegularDriver = () => {
+    const v = vehicles.find((x) => String(x.id) === chosen);
+    f.driver_choice.options[0].text = v?.driver_name ? `พนักงานขับรถประจำรถ (${v.driver_name})` : 'พนักงานขับรถประจำรถ';
+  };
+  showRegularDriver();
   f.addEventListener('change', (e) => {
-    if (e.target.name === 'vehicle_id') { chosen = e.target.value; return; }
+    if (e.target.name === 'vehicle_id') { chosen = e.target.value; showRegularDriver(); return; }
     if (['type_id', 'start_at', 'end_at', 'passenger_count'].includes(e.target.name)) refreshVehicles();
   });
   f.passenger_count.addEventListener('input', debounce(refreshVehicles, 400));
@@ -733,8 +744,9 @@ async function viewBook(query) {
       $('#vpick').scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+    const { driver_choice: dc, ...rest } = d;
     const body = {
-      ...d, need_driver: f.need_driver.checked, start_at: fromLocalInput(d.start_at), end_at: fromLocalInput(d.end_at),
+      ...rest, need_driver: dc !== '__self', assigned_driver: dc === '__self' ? '' : dc || '', start_at: fromLocalInput(d.start_at), end_at: fromLocalInput(d.end_at),
       type_id: d.type_id === 'other' ? '' : d.type_id, type_other: d.type_id === 'other' ? d.type_other : '', vehicle_id: chosen || '',
     };
     $('#submitBtn').disabled = true; $('#formError').innerHTML = '';
@@ -936,10 +948,10 @@ async function assignDialog(b, approving) {
           <span><b>${esc(v.plate)}</b> <span class="faint">${esc(v.type_name)} · ${v.seats} ที่นั่ง</span>${v.type_id !== b.type_id ? ' <span class="tag tag-gray">ต่างประเภท</span>' : ''}
           ${ok ? '<div class="ok">✓ ว่าง</div>' : `<div class="why">${esc(why)}</div>`}</span></label>`).join('')}
       </div></div>
-      <label class="field"><span>พนักงานขับรถ</span><input name="assigned_driver" value="${esc(b.assigned_driver || b.vehicle_driver || '')}" ${driverAttrs}><small>เว้นว่างได้ถ้าผู้ขอขับเอง</small></label>
+      <label class="field"><span>พนักงานขับรถ</span><select name="assigned_driver">${driverOptions(b.assigned_driver || b.vehicle_driver || '', '— ไม่ใช้พนักงานขับรถ (ผู้ขอขับเอง) —')}</select></label>
       ${approving ? '<label class="field"><span>หมายเหตุการอนุมัติ</span><textarea name="note" placeholder="เช่น อนุมัติ ให้รับรถที่อาคารจอดรถ"></textarea></label>' : ''}`,
     onOpen: (box) => box.addEventListener('change', (e) => {
-      if (e.target.name === 'vehicle_id' && e.target.dataset.driver) box.assigned_driver.value = e.target.dataset.driver;
+      if (e.target.name === 'vehicle_id' && e.target.dataset.driver) selectDriver(box.assigned_driver, e.target.dataset.driver);
     }),
     onSubmit: (f) => {
       const d = formData(f);
@@ -955,7 +967,7 @@ async function tripDialog(b) {
     title: `บันทึกการใช้รถ · ${b.plate}`,
     body: `
       <div class="info-box">${esc(b.code)} · กำหนดการ ${esc(fmtRange(b.start_at, b.end_at))} · เลขไมล์ล่าสุดของรถ ${num(v.mileage)}</div>
-      <label class="field"><span>พนักงานขับรถ</span><input name="driver_name" value="${esc(b.trip_driver || b.assigned_driver || b.vehicle_driver || '')}" ${driverAttrs}></label>
+      <label class="field"><span>พนักงานขับรถ</span><select name="driver_name">${driverOptions(b.trip_driver || b.assigned_driver || b.vehicle_driver || '')}</select></label>
       <div class="form-grid">
         <label class="field"><span>วันเวลาออกเดินทาง</span><input type="datetime-local" name="depart_at" value="${toLocalInput(b.depart_at) || toLocalInput(new Date().toISOString())}"></label>
         <label class="field"><span>เลขไมล์ขาออก</span><input type="number" min="0" name="depart_mileage" inputmode="numeric" value="${b.depart_mileage ?? v.mileage ?? ''}"></label>
@@ -1060,7 +1072,6 @@ async function reloadMeta() {
   const meta = await api('GET', '/api/meta');
   S.types = meta.types; S.settings = meta.settings; S.people = meta.people; S.presets = meta.presets;
   S.layout = meta.print_layout; S.layoutDefault = meta.print_layout_default;
-  renderDatalists();
 }
 
 // ---------- แท็บทั่วไป ----------
