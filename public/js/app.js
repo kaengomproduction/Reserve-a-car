@@ -112,17 +112,22 @@ async function loadSession() {
   renderShell();
 }
 
-/** รายชื่อพนักงานขับรถ (บุคลากรที่ติ๊ก "พนักงานขับรถยนต์") */
-const driverNames = () => (S.people || []).filter((p) => p.active && p.is_driver).map((p) => p.name);
-/** ตัวเลือกพนักงานขับรถแบบ dropdown — ชื่อเดิมที่ไม่อยู่ในรายชื่อยังคงแสดงไว้ */
+/** ตัวเลือกคนขับ: พนักงานขับรถก่อน แล้วตามด้วยบุคลากรอื่นทุกคน — ชื่อเดิมที่ไม่อยู่ในรายชื่อยังคงแสดงไว้ */
+function driverGroups(current = '') {
+  const active = (S.people || []).filter((p) => p.active);
+  const drivers = active.filter((p) => p.is_driver).map((p) => p.name);
+  const others = active.filter((p) => !p.is_driver).map((p) => p.name).filter((n) => !drivers.includes(n));
+  const opt = (n) => `<option ${n === current ? 'selected' : ''}>${esc(n)}</option>`;
+  const group = (label, names) => (names.length ? `<optgroup label="${esc(label)}">${names.map(opt).join('')}</optgroup>` : '');
+  return (current && !drivers.includes(current) && !others.includes(current) ? opt(current) : '')
+    + group('พนักงานขับรถ', drivers) + group('บุคลากรอื่น', others);
+}
 function driverOptions(current = '', emptyLabel = '— ไม่ระบุ —') {
-  const names = driverNames();
-  if (current && !names.includes(current)) names.unshift(current);
-  return `<option value="">${esc(emptyLabel)}</option>` + names.map((n) => `<option ${n === current ? 'selected' : ''}>${esc(n)}</option>`).join('');
+  return `<option value="">${esc(emptyLabel)}</option>` + driverGroups(current);
 }
 /** ตั้งค่า select เป็นชื่อที่กำหนด (เพิ่มตัวเลือกให้ถ้ายังไม่มี) */
 function selectDriver(sel, name) {
-  if (name && ![...sel.options].some((o) => o.value === name)) sel.add(new Option(name, name), 1);
+  if (name && ![...sel.options].some((o) => o.value === name)) sel.insertBefore(new Option(name, name), sel.options[0].nextSibling);
   sel.value = name || '';
 }
 
@@ -646,7 +651,7 @@ async function viewBook(query) {
           <div class="field full"><span>สถานที่ไป/จุดหมาย <b class="req">*</b></span>${presetSelect('destination')}<input name="destination" required placeholder="เช่น ศาลากลางจังหวัดเชียงใหม่"></div>
           <div class="field full"><span>วัตถุประสงค์/เหตุผล <b class="req">*</b></span>${presetSelect('purpose')}<textarea name="purpose" required placeholder="เช่น ประชุม… / นำส่งหนังสือราชการ…"></textarea></div>
           <label class="field"><span>จำนวนผู้เดินทางทั้งหมด (รวมผู้ขอ) <b class="req">*</b></span><input name="passenger_count" type="number" min="1" max="100" required value="1" inputmode="numeric"></label>
-          <label class="field"><span>พนักงานขับรถ</span><select name="driver_choice"><option value="">พนักงานขับรถประจำรถ</option>${driverNames().map((n) => `<option>${esc(n)}</option>`).join('')}<option value="__self">ไม่ต้องการพนักงานขับรถ (ขับเอง)</option></select></label>
+          <label class="field"><span>พนักงานขับรถ</span><select name="driver_choice"><option value="">พนักงานขับรถประจำรถ</option><option value="__self">ไม่ต้องการพนักงานขับรถ (ขับเอง)</option>${driverGroups()}</select></label>
           <label class="field"><span>วันเวลาออกเดินทาง <b class="req">*</b></span><input name="start_at" type="datetime-local" required value="${start}"></label>
           <label class="field"><span>วันเวลากลับ <b class="req">*</b></span><input name="end_at" type="datetime-local" required value="${end}"></label>
           <div class="full faint" id="durNote"></div>
@@ -1186,7 +1191,7 @@ function settingsPeople(el) {
       <div class="row"><h2 style="margin:0">รายชื่อบุคลากร</h2><span class="spacer"></span>
         <button class="btn" id="importPeople">นำเข้าจาก Excel</button>
         <button class="btn btn-primary" id="addPerson">${ICON.plus} เพิ่มรายชื่อ</button></div>
-      <p class="faint">รายชื่อเหล่านี้เป็นตัวเลือกใน: <b>แบบฟอร์มจอง</b> (ผู้ขอใช้รถ — เลือกแล้วเติมตำแหน่ง ฝ่าย เบอร์โทรให้) · <b>ช่องพนักงานขับรถ</b> (ข้อมูลรถ การกำหนดรถ บันทึกการใช้รถ) · <b>ผู้ลงนามบนหน้าพิมพ์</b> (เจ้าหน้าที่ผู้รับผิดชอบ / ผู้มีอำนาจ)</p>
+      <p class="faint">รายชื่อเหล่านี้เป็นตัวเลือกใน: <b>แบบฟอร์มจอง</b> (ผู้ขอใช้รถ — เลือกแล้วเติมตำแหน่ง ฝ่าย เบอร์โทรให้) · <b>ช่องพนักงานขับรถ</b> (แบบฟอร์มจอง ข้อมูลรถ การกำหนดรถ บันทึกการใช้รถ — แสดงพนักงานขับรถก่อน ตามด้วยบุคลากรอื่น) · <b>ผู้ลงนามบนหน้าพิมพ์</b> (เจ้าหน้าที่ผู้รับผิดชอบ / ผู้มีอำนาจ)</p>
       ${rows.length ? `<div class="table-wrap"><table class="table">
         <thead><tr><th>ชื่อ-นามสกุล</th><th>ฝ่าย/กลุ่มงาน</th><th>โทร</th><th>หน้าที่</th><th>สถานะ</th><th></th></tr></thead>
         <tbody>${rows.map((p) => `<tr>
