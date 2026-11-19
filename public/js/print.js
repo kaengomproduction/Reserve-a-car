@@ -39,6 +39,12 @@ const sign = (title, name = '', { date, withDate = true } = {}) => `
   </div>`;
 
 const personName = (pid) => (META.people || []).find((p) => p.id === Number(pid))?.name || '';
+const isDirector = (p) => /^(ผู้อำนวยการ|ผอ\.)/.test((p.position || '').trim()); // ไม่รวมรองผู้อำนวยการ
+/** ผู้อำนวยการ: ผู้มีอำนาจที่ตำแหน่งเป็นผู้อำนวยการก่อน รองลงมาคือบุคลากรตำแหน่งผู้อำนวยการ แล้วจึงผู้มีอำนาจคนแรก */
+function director() {
+  const act = (META.people || []).filter((p) => p.active);
+  return act.find((p) => p.is_approver && isDirector(p)) || act.find(isDirector) || act.find((p) => p.is_approver) || null;
+}
 
 function render() {
   const s = S, T = L.texts;
@@ -50,7 +56,9 @@ function render() {
   const purpose = B.purpose + (L.showCompanionNames && B.companions ? ` (ผู้ร่วมเดินทาง: ${B.companions})` : '');
   const approvedByAdmin = ['approved', 'completed'].includes(B.status) && !!B.decided_by;
   const rejected = B.status === 'rejected';
-  const driver = B.trip_driver || B.assigned_driver || '';
+  // ชื่อคนขับ: จากบันทึกการใช้รถ → ที่กำหนดในการจอง → คนขับประจำรถ (ถ้าผู้ขอไม่ได้เลือกขับเอง)
+  const needDriver = !(B.need_driver === 0 || B.need_driver === false);
+  const driver = B.trip_driver || B.assigned_driver || (needDriver ? B.vehicle_driver : '') || '';
   const shortPlate = B.plate ? B.plate.split(' ').slice(0, 2).join(' ') : '';
   // เลขลำดับตามทะเบียนรถ (มีเมื่อการจองระบุรถแล้ว)
   const thaiDigits = (n) => String(n).replace(/\d/g, (d) => '๐๑๒๓๔๕๖๗๘๙'[d]);
@@ -59,8 +67,10 @@ function render() {
   const dist = B.distance !== null && B.distance !== undefined ? num(B.distance) : '';
   const mile = (n) => (n === null || n === undefined ? '' : num(n));
   // ชื่อผู้ลงนาม: เลือกจากรายชื่อ (ค่าเริ่มต้นจากการตั้งค่า) / ผู้อนุมัติจริงในระบบ
-  const respName = L.printSignerNames ? personName(selResp.value) : '';
-  const apprName = L.printSignerNames ? (personName(selAppr.value) || (R && B.decided_by_name ? B.decided_by_name : '')) : '';
+  // ผู้รับผิดชอบ = ผู้ขอใช้รถ, ผู้มีอำนาจ = ผู้อำนวยการ (ค่าเริ่มต้น) / -1 = เว้นว่างให้เขียนเอง
+  const signer = (v, auto) => (v === '-1' ? '' : v === '' ? auto : personName(v));
+  const respName = L.printSignerNames ? signer(selResp.value, B.requester_name || '') : '';
+  const apprName = L.printSignerNames ? signer(selAppr.value, director()?.name || (R && B.decided_by_name ? B.decided_by_name : '')) : '';
 
   wrap.innerHTML = `
   <article class="page" id="page">
@@ -92,7 +102,7 @@ function render() {
       <section class="col-left">
         <div class="frow"><span data-edit>เรียน ${esc(s.form_to)}</span></div>
         <div class="frow indent-sm plate-row">${box(R && !!B.plate)}<span data-edit>${esc(T.officerOpt1)}</span>${fill(R ? shortPlate : '')}</div>
-        <div class="frow"><span data-edit>${esc(T.officerAssign)}</span>${fill(R ? driver : '')}<span data-edit>${esc(T.officerDriver)}</span></div>
+        <div class="frow"><span data-edit>${esc(T.officerAssign)}</span>${fill(driver)}<span data-edit>${esc(T.officerDriver)}</span></div>
         <p class="para">${box(false)} <span data-edit>${esc(T.officerOpt2)}</span></p>
         <p class="closing" data-edit>${esc(T.officerClosing)}</p>
         <div class="sign-wrap">${sign(s.responsible_title, respName)}</div>
@@ -196,12 +206,13 @@ function applyEditMode() {
 const SIGN_KEY = { resp: 'vb.print.resp', appr: 'vb.print.appr' };
 const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* ไม่สำคัญ */ } } };
 function fillSigners() {
-  const opts = (flag, def) => `<option value="">— เว้นว่าง (เขียนเอง) —</option>` + (META.people || [])
-    .filter((p) => p.active && p[flag]).map((p) => `<option value="${p.id}">${esc(p.name)}${p.position ? ` · ${esc(p.position)}` : ''}</option>`).join('');
-  selResp.innerHTML = opts('is_responsible');
-  selAppr.innerHTML = opts('is_approver');
+  const dir = director();
+  const opts = (autoLabel, filter) => `<option value="">${esc(autoLabel)}</option><option value="-1">— เว้นว่าง (เขียนเอง) —</option>` + (META.people || [])
+    .filter((p) => p.active && filter(p)).map((p) => `<option value="${p.id}">${esc(p.name)}${p.position ? ` · ${esc(p.position)}` : ''}</option>`).join('');
+  selResp.innerHTML = opts('ผู้ขอใช้รถ (ชื่อในใบนี้)', (p) => p.is_responsible);
+  selAppr.innerHTML = opts(dir ? `ผู้อำนวยการ (${dir.name})` : 'ผู้อำนวยการ', (p) => p.is_approver || isDirector(p));
   const pick = (sel, saved, def) => {
-    const v = !EMBED && saved !== null ? saved : String(def || '');
+    const v = !EMBED && saved !== null ? saved : def > 0 ? String(def) : def < 0 ? '-1' : '';
     sel.value = [...sel.options].some((o) => o.value === v) ? v : '';
   };
   pick(selResp, store.get(SIGN_KEY.resp), L.responsibleId);
@@ -225,8 +236,10 @@ function sampleBooking() {
 }
 
 // ---------- เริ่มต้น ----------
+const FILL_KEY = 'vb.print.fill';
 optFill.addEventListener('change', () => {
   if (optEdit.checked && !confirm('การเปลี่ยนตัวเลือกนี้จะล้างข้อความที่แก้ไขบนเอกสาร ต้องการดำเนินการต่อหรือไม่')) { optFill.checked = !optFill.checked; return; }
+  if (!EMBED && !SAMPLE) store.set(FILL_KEY, optFill.checked ? '1' : '0');
   render();
 });
 optEdit.addEventListener('change', applyEditMode);
@@ -258,7 +271,8 @@ window.addEventListener('message', (e) => {
     return;
   }
   L = META.print_layout; S = META.settings;
-  if (SAMPLE) optFill.checked = true;
+  // เติมผลพิจารณา/บันทึกการใช้รถจากระบบโดยอัตโนมัติ (ปิดได้ที่แถบเครื่องมือ ระบบจำค่าไว้)
+  optFill.checked = SAMPLE || EMBED || store.get(FILL_KEY) !== '0';
   document.title = `${S.form_title} ${B.code}`;
   document.getElementById('tbTitle').textContent = `${B.code} · ${B.requester_name}`;
   if (B.id) document.getElementById('backLink').href = `./#/requests/${B.id}`;
