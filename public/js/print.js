@@ -67,9 +67,9 @@ function render() {
   const dist = B.distance !== null && B.distance !== undefined ? num(B.distance) : '';
   const mile = (n) => (n === null || n === undefined ? '' : num(n));
   // ชื่อผู้ลงนาม: เลือกจากรายชื่อ (ค่าเริ่มต้นจากการตั้งค่า) / ผู้อนุมัติจริงในระบบ
-  // ผู้รับผิดชอบ = ผู้ขอใช้รถ, ผู้มีอำนาจ = ผู้อำนวยการ (ค่าเริ่มต้น) / -1 = เว้นว่างให้เขียนเอง
+  // ผู้รับผิดชอบ = พนักงานขับรถ, ผู้มีอำนาจ = ผู้อำนวยการ (ค่าเริ่มต้น) / -1 = เว้นว่างให้เขียนเอง
   const signer = (v, auto) => (v === '-1' ? '' : v === '' ? auto : personName(v));
-  const respName = L.printSignerNames ? signer(selResp.value, B.requester_name || '') : '';
+  const respName = L.printSignerNames ? signer(selResp.value, driver) : '';
   const apprName = L.printSignerNames ? signer(selAppr.value, director()?.name || (R && B.decided_by_name ? B.decided_by_name : '')) : '';
 
   wrap.innerHTML = `
@@ -209,7 +209,7 @@ function fillSigners() {
   const dir = director();
   const opts = (autoLabel, filter) => `<option value="">${esc(autoLabel)}</option><option value="-1">— เว้นว่าง (เขียนเอง) —</option>` + (META.people || [])
     .filter((p) => p.active && filter(p)).map((p) => `<option value="${p.id}">${esc(p.name)}${p.position ? ` · ${esc(p.position)}` : ''}</option>`).join('');
-  selResp.innerHTML = opts('ผู้ขอใช้รถ (ชื่อในใบนี้)', (p) => p.is_responsible);
+  selResp.innerHTML = opts('พนักงานขับรถ (ชื่อในใบนี้)', (p) => p.is_responsible);
   selAppr.innerHTML = opts(dir ? `ผู้อำนวยการ (${dir.name})` : 'ผู้อำนวยการ', (p) => p.is_approver || isDirector(p));
   const pick = (sel, saved, def) => {
     const v = !EMBED && saved !== null ? saved : def > 0 ? String(def) : def < 0 ? '-1' : '';

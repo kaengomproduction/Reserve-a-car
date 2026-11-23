@@ -1371,7 +1371,7 @@ async function settingsPrint(el) {
           ${chk('showRef', 'เลขอ้างอิงการจองที่มุมล่างซ้าย')}
         </div></details>
         <details open><summary>ผู้ลงนามเริ่มต้น</summary><div class="pl-group">
-          <label class="field"><span>เจ้าหน้าที่ผู้รับผิดชอบ</span>${signerSel('responsibleId', 'ผู้ขอใช้รถ (ชื่อตามใบขอ)', (p) => p.is_responsible)}</label>
+          <label class="field"><span>เจ้าหน้าที่ผู้รับผิดชอบ</span>${signerSel('responsibleId', 'พนักงานขับรถ (ชื่อตามใบขอ)', (p) => p.is_responsible)}</label>
           <label class="field"><span>ผู้มีอำนาจ</span>${signerSel('approverId', 'ผู้อำนวยการ (หาจากตำแหน่งในรายชื่อบุคลากร)', (p) => p.is_approver || isDirector(p))}</label>
           <p class="faint" style="margin:0">เปลี่ยนเฉพาะครั้งได้ที่แถบเครื่องมือของหน้าพิมพ์ · เพิ่มรายชื่อได้ที่แท็บ “บุคลากร”</p>
         </div></details>
