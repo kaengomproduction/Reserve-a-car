@@ -1336,8 +1336,8 @@ async function settingsPrint(el) {
     <input type="range" min="${min}" max="${max}" step="${step}" value="${L[k]}" data-k="${k}">
     <input type="number" min="${min}" max="${max}" step="${step}" value="${L[k]}" data-k="${k}" class="input"><em>${unit}</em></label>`;
   const chk = (k, label) => `<label class="check"><input type="checkbox" data-k="${k}" ${L[k] ? 'checked' : ''}> ${label}</label>`;
-  const signerSel = (k, autoLabel, filter) => `<select class="input" data-k="${k}">
-    <option value="0" ${L[k] === 0 ? 'selected' : ''}>${esc(autoLabel)}</option><option value="-1" ${L[k] === -1 ? 'selected' : ''}>— เว้นว่าง —</option>
+  const signerSel = (k, autoLabel, filter, extra = '') => `<select class="input" data-k="${k}">
+    <option value="0" ${L[k] === 0 ? 'selected' : ''}>${esc(autoLabel)}</option>${extra}<option value="-1" ${L[k] === -1 ? 'selected' : ''}>— เว้นว่าง —</option>
     ${S.people.filter((p) => p.active && filter(p)).map((p) => `<option value="${p.id}" ${p.id === L[k] ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select>`;
   const isDirector = (p) => /^(ผู้อำนวยการ|ผอ\.)/.test((p.position || '').trim());
   el.innerHTML = `
@@ -1371,7 +1371,7 @@ async function settingsPrint(el) {
           ${chk('showRef', 'เลขอ้างอิงการจองที่มุมล่างซ้าย')}
         </div></details>
         <details open><summary>ผู้ลงนามเริ่มต้น</summary><div class="pl-group">
-          <label class="field"><span>เจ้าหน้าที่ผู้รับผิดชอบ</span>${signerSel('responsibleId', 'พนักงานขับรถ (ชื่อตามใบขอ)', (p) => p.is_responsible)}</label>
+          <label class="field"><span>เจ้าหน้าที่ผู้รับผิดชอบ</span>${signerSel('responsibleId', 'พนักงานขับรถ (ชื่อตามใบขอ)', (p) => p.is_responsible, `<option value="-2" ${L.responsibleId === -2 ? 'selected' : ''}>คนจอง (ชื่อตามใบขอ)</option>`)}</label>
           <label class="field"><span>ผู้มีอำนาจ</span>${signerSel('approverId', 'ผู้อำนวยการ (หาจากตำแหน่งในรายชื่อบุคลากร)', (p) => p.is_approver || isDirector(p))}</label>
           <p class="faint" style="margin:0">เปลี่ยนเฉพาะครั้งได้ที่แถบเครื่องมือของหน้าพิมพ์ · เพิ่มรายชื่อได้ที่แท็บ “บุคลากร”</p>
         </div></details>

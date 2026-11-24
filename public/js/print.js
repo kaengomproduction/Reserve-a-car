@@ -69,7 +69,7 @@ function render() {
   // ชื่อผู้ลงนาม: เลือกจากรายชื่อ (ค่าเริ่มต้นจากการตั้งค่า) / ผู้อนุมัติจริงในระบบ
   // ผู้รับผิดชอบ = พนักงานขับรถ, ผู้มีอำนาจ = ผู้อำนวยการ (ค่าเริ่มต้น) / -1 = เว้นว่างให้เขียนเอง
   const signer = (v, auto) => (v === '-1' ? '' : v === '' ? auto : personName(v));
-  const respName = L.printSignerNames ? signer(selResp.value, driver) : '';
+  const respName = L.printSignerNames ? (selResp.value === '-2' ? B.requester_name || '' : signer(selResp.value, driver)) : '';
   const apprName = L.printSignerNames ? signer(selAppr.value, director()?.name || (R && B.decided_by_name ? B.decided_by_name : '')) : '';
 
   wrap.innerHTML = `
@@ -207,12 +207,12 @@ const SIGN_KEY = { resp: 'vb.print.resp', appr: 'vb.print.appr' };
 const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* ไม่สำคัญ */ } } };
 function fillSigners() {
   const dir = director();
-  const opts = (autoLabel, filter) => `<option value="">${esc(autoLabel)}</option><option value="-1">— เว้นว่าง (เขียนเอง) —</option>` + (META.people || [])
+  const opts = (autoLabel, filter, extra = '') => `<option value="">${esc(autoLabel)}</option>${extra}<option value="-1">— เว้นว่าง (เขียนเอง) —</option>` + (META.people || [])
     .filter((p) => p.active && filter(p)).map((p) => `<option value="${p.id}">${esc(p.name)}${p.position ? ` · ${esc(p.position)}` : ''}</option>`).join('');
-  selResp.innerHTML = opts('พนักงานขับรถ (ชื่อในใบนี้)', (p) => p.is_responsible);
+  selResp.innerHTML = opts('พนักงานขับรถ (ชื่อในใบนี้)', (p) => p.is_responsible, '<option value="-2">คนจอง (ชื่อในใบนี้)</option>');
   selAppr.innerHTML = opts(dir ? `ผู้อำนวยการ (${dir.name})` : 'ผู้อำนวยการ', (p) => p.is_approver || isDirector(p));
   const pick = (sel, saved, def) => {
-    const v = !EMBED && saved !== null ? saved : def > 0 ? String(def) : def < 0 ? '-1' : '';
+    const v = !EMBED && saved !== null ? saved : def ? String(def) : '';
     sel.value = [...sel.options].some((o) => o.value === v) ? v : '';
   };
   pick(selResp, store.get(SIGN_KEY.resp), L.responsibleId);

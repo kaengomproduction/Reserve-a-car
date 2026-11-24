@@ -16,7 +16,7 @@ export const DEFAULT_LAYOUT = {
   showTripSection: true,     // แสดงส่วนบันทึกการใช้รถ
   showRef: true,             // แสดงเลขอ้างอิงการจองมุมล่าง
   printSignerNames: true,    // พิมพ์ชื่อผู้ลงนามที่เลือกไว้ในวงเล็บ
-  responsibleId: 0,          // เจ้าหน้าที่ผู้รับผิดชอบ: 0 = พนักงานขับรถ, -1 = เว้นว่าง, อื่น ๆ = people.id
+  responsibleId: 0,          // เจ้าหน้าที่ผู้รับผิดชอบ: 0 = พนักงานขับรถ, -2 = คนจอง, -1 = เว้นว่าง, อื่น ๆ = people.id
   approverId: 0,             // ผู้มีอำนาจ: 0 = ผู้อำนวยการ (หาจากตำแหน่ง), -1 = เว้นว่าง, อื่น ๆ = people.id
   texts: {
     // เลขลำดับใต้รหัสแบบฟอร์ม: {n}=ลำดับ {thn}=ลำดับเลขไทย {short}=ทะเบียนย่อ {plate}=ทะเบียนเต็ม (เว้นว่าง = ไม่แสดง)
@@ -44,7 +44,7 @@ const RANGES = {
   fontSize: [9, 20], minFontSize: [8, 18], lineHeight: [1.2, 2.4],
   marginTop: [0, 40], marginRight: [0, 40], marginBottom: [0, 40], marginLeft: [0, 40],
   splitLeft: [35, 70], indent: [0, 50], purposeLines: [1, 8], signGap: [0, 20],
-  responsibleId: [-1, 1e9], approverId: [-1, 1e9],
+  responsibleId: [-2, 1e9], approverId: [-1, 1e9],
 };
 const INTS = new Set(['purposeLines', 'responsibleId', 'approverId']);
 
